@@ -1,47 +1,46 @@
 # Lighthouse Performance Runner
 
-Локальный инструмент для запуска 10 проверок Lighthouse по заданному URL.
-Результат — HTML-отчёт с таблицей всех прогонов и строкой Average.
+A local tool that runs 10 Lighthouse performance audits for a given URL and generates an HTML report with per-run results and an Average row.
 
-## Требования
+## Requirements
 
 - Node.js 18+
-- Google Chrome (установлен на компьютере)
+- Google Chrome installed
 
-## Установка
+## Setup
 
 ```bash
 npm install
 ```
 
-## Запуск
+## Usage
 
 ```bash
 node run.js <url> [mobile|desktop]
 ```
 
-### Примеры
+### Examples
 
 ```bash
-# Mobile (по умолчанию)
+# Mobile (default)
 node run.js https://example.com
 
 # Desktop
 node run.js https://example.com desktop
 
-# Mobile явно
+# Mobile explicit
 node run.js https://example.com mobile
 ```
 
-## Что происходит
+## How it works
 
-1. Открывается Chrome в фоновом режиме
-2. Запускается 10 прогонов Lighthouse
-3. В консоли отображается прогресс каждого прогона
-4. Сохраняется HTML-отчёт в папку `reports/`
-5. Отчёт автоматически открывается в браузере
+1. Launches Chrome in headless mode
+2. Runs Lighthouse 10 times
+3. Prints progress for each run in the console
+4. Saves an HTML report to the `reports/` folder
+5. Automatically opens the report in the browser
 
-## Вывод в консоли
+## Console output
 
 ```
 Lighthouse Performance Runner
@@ -62,23 +61,23 @@ Average LCP   : 1.25s
 Report saved: reports/example.com_desktop_2026-02-27_14-30.html
 ```
 
-## HTML-отчёт
+## HTML report
 
-Таблица с метриками по каждому прогону + строка Average:
+A table with metrics for each run plus an Average row at the bottom:
 
 | Run | Score | FCP | LCP | TBT | CLS | Speed Index | TTI |
 |-----|-------|-----|-----|-----|-----|-------------|-----|
-| 1   | 91    | ... | ... | ... | ... | ...         | ... |
-| ... | ...   | ... | ... | ... | ... | ...         | ... |
+| 1 | 91 | ... | ... | ... | ... | ... | ... |
+| ... | ... | ... | ... | ... | ... | ... | ... |
 | **Avg** | **90** | ... | ... | ... | ... | ... | ... |
 
-Цветовая шкала Score: 🟢 90–100 · 🟠 50–89 · 🔴 0–49
+Score color scale: 🟢 90–100 · 🟠 50–89 · 🔴 0–49
 
-## Метрики
+## Metrics
 
-| Метрика | Описание |
-|---------|----------|
-| Score | Общий Performance score (0–100) |
+| Metric | Description |
+|--------|-------------|
+| Score | Overall Performance score (0–100) |
 | FCP | First Contentful Paint |
 | LCP | Largest Contentful Paint |
 | TBT | Total Blocking Time |
@@ -86,13 +85,13 @@ Report saved: reports/example.com_desktop_2026-02-27_14-30.html
 | Speed Index | Speed Index |
 | TTI | Time to Interactive |
 
-## Структура проекта
+## Project structure
 
 ```
 Lighouse_reports/
-├── run.js          — главный скрипт
-├── package.json    — зависимости
+├── run.js          — main script
+├── package.json    — dependencies
 ├── README.md
-└── reports/        — HTML-отчёты (создаётся автоматически)
+└── reports/        — HTML reports (auto-created, git-ignored)
     └── example.com_mobile_2026-02-27_14-30.html
 ```
