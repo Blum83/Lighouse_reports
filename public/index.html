@@ -51,6 +51,19 @@
     }
     input[type="text"]:focus { border-color: #1a73e8; }
 
+    select {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid #ddd;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+      background: #fff;
+      cursor: pointer;
+      height: 42px;
+    }
+    select:focus { border-color: #1a73e8; }
+
     .device-toggle {
       display: flex;
       border: 1.5px solid #ddd;
@@ -212,7 +225,7 @@
   <div class="container">
     <header>
       <h1>Lighthouse Runner</h1>
-      <p>Run 10 performance audits and get averaged results</p>
+      <p>Run performance audits and get averaged results</p>
     </header>
 
     <div class="card">
@@ -229,6 +242,18 @@
             <input type="radio" name="device" id="devDesktop" value="desktop" />
             <label for="devDesktop">🖥 Desktop</label>
           </div>
+        </div>
+        <div class="input-group" style="flex:0">
+          <label>Runs</label>
+          <select id="runsSelect">
+            <option value="1">1</option>
+            <option value="3">3</option>
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="15">15</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
         </div>
         <button class="btn-run" id="runBtn" onclick="startRun()">Run</button>
       </div>
@@ -422,6 +447,7 @@
     function startRun() {
       const url = document.getElementById('urlInput').value.trim();
       const device = document.querySelector('input[name="device"]:checked').value;
+      const runs = parseInt(document.getElementById('runsSelect').value, 10);
 
       if (!url) { showError('Please enter a URL.'); return; }
 
@@ -445,7 +471,7 @@
       const metaEl = document.getElementById('resultsMeta');
       metaEl.innerHTML = `<strong>${url}</strong> &nbsp;·&nbsp; ${device === 'mobile' ? '📱 Mobile' : '🖥 Desktop'} &nbsp;·&nbsp; ${new Date().toLocaleString()}`;
 
-      const evtSource = new EventSource(`/run?url=${encodeURIComponent(url)}&device=${device}`);
+      const evtSource = new EventSource(`/run?url=${encodeURIComponent(url)}&device=${device}&runs=${runs}`);
 
       evtSource.addEventListener('progress', e => {
         const data = JSON.parse(e.data);

@@ -7,7 +7,8 @@ import { launch } from 'chrome-launcher';
 import lighthouse from 'lighthouse';
 
 const PORT = 3000;
-const RUNS = 10;
+const DEFAULT_RUNS = 1;
+const MAX_RUNS = 50;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 let isRunning = false;
@@ -95,6 +96,7 @@ const server = http.createServer(async (req, res) => {
 
     const targetUrl = reqUrl.searchParams.get('url');
     const device = (reqUrl.searchParams.get('device') || 'mobile').toLowerCase();
+    const runs = Math.min(MAX_RUNS, Math.max(1, parseInt(reqUrl.searchParams.get('runs'), 10) || DEFAULT_RUNS));
 
     if (!targetUrl) {
       sendEvent(res, 'error', { message: 'URL is required.' });
@@ -123,11 +125,11 @@ const server = http.createServer(async (req, res) => {
     try {
       chrome = await launch({ chromeFlags: ['--headless', '--disable-gpu'] });
 
-      for (let i = 1; i <= RUNS; i++) {
-        sendEvent(res, 'progress', { run: i, total: RUNS, status: 'running' });
+      for (let i = 1; i <= runs; i++) {
+        sendEvent(res, 'progress', { run: i, total: runs, status: 'running' });
         const r = await runLighthouse(targetUrl, chrome.port, device);
         results.push(r);
-        sendEvent(res, 'progress', { run: i, total: RUNS, status: 'done', result: r });
+        sendEvent(res, 'progress', { run: i, total: runs, status: 'done', result: r });
       }
 
       const avg = {
