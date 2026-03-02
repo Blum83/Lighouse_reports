@@ -104,6 +104,23 @@
     .btn-run:hover { background: #1557b0; }
     .btn-run:disabled { opacity: .5; cursor: not-allowed; }
 
+    .btn-stop {
+      padding: 0 24px;
+      height: 42px;
+      background: #fff;
+      color: #d93025;
+      border: 1.5px solid #d93025;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s, color .15s;
+      white-space: nowrap;
+      display: none;
+    }
+    .btn-stop:hover { background: #d93025; color: #fff; }
+    .btn-stop:disabled { opacity: .5; cursor: not-allowed; }
+
     /* Progress */
     .progress-wrap { display: none; }
     .progress-wrap.visible { display: block; }
@@ -219,6 +236,57 @@
 
     tr.new-row td { animation: fadeIn .3s ease; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+    /* Cookie selector row */
+    .cookie-row { margin-top: 16px; padding-top: 16px; border-top: 1px solid #f0f0f0; }
+    .cookie-label { display: block; font-size: 0.8rem; font-weight: 600; color: #555; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .04em; }
+    .cookie-label .optional { font-weight: 400; text-transform: none; color: #aaa; letter-spacing: 0; }
+    .cookie-hint { font-size: 0.78rem; color: #999; margin-top: 6px; }
+
+    /* Screenshot thumbnail */
+    td.screenshot-cell { padding: 6px 10px; }
+    .thumb {
+      width: 72px;
+      height: auto;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+      cursor: zoom-in;
+      display: block;
+      margin: 0 auto;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .thumb:hover { transform: scale(1.06); box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+    .no-shot { color: #bbb; font-size: 0.75rem; }
+
+    /* Lightbox */
+    .lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.75);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      cursor: zoom-out;
+    }
+    .lightbox.open { display: flex; }
+    .lightbox img {
+      max-width: 90vw;
+      max-height: 90vh;
+      border-radius: 8px;
+      box-shadow: 0 8px 40px rgba(0,0,0,.5);
+    }
+    .lightbox-label {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,.6);
+      color: #fff;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.82rem;
+    }
   </style>
 </head>
 <body>
@@ -256,6 +324,12 @@
           </select>
         </div>
         <button class="btn-run" id="runBtn" onclick="startRun()">Run</button>
+        <button class="btn-stop" id="stopBtn" onclick="stopRun()">Stop</button>
+      </div>
+      <div class="cookie-row">
+        <label class="cookie-label" for="cookieSelector">Cookie consent selector <span class="optional">(optional)</span></label>
+        <input type="text" id="cookieSelector" placeholder="#accept-cookies, .btn-accept, [data-testid='cookie-accept']" />
+        <p class="cookie-hint">CSS selector of the "Accept cookies" button. The page will be pre-loaded and the button clicked before audits start, so your A/B experiment activates correctly.</p>
       </div>
     </div>
 
@@ -284,6 +358,7 @@
             <th>CLS</th>
             <th>Speed Index</th>
             <th>TTI</th>
+            <th>Screenshot</th>
           </tr>
         </thead>
         <tbody id="tableBody"></tbody>
@@ -300,6 +375,12 @@
         <button class="btn-export" onclick="exportXlsx()">XLSX</button>
       </div>
     </div>
+  </div>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+    <div class="lightbox-label" id="lightboxLabel"></div>
+    <img id="lightboxImg" src="" alt="Screenshot" />
   </div>
 
   <script>
@@ -325,6 +406,12 @@
         ? `<td class="avg-label">Avg</td>`
         : `<td class="run-num">${runNum}</td>`;
 
+      const screenshotCell = isAvg
+        ? `<td></td>`
+        : r.screenshot
+          ? `<td class="screenshot-cell"><img class="thumb" src="${r.screenshot}" alt="Run ${runNum}" /></td>`
+          : `<td class="screenshot-cell"><span class="no-shot">—</span></td>`;
+
       tr.innerHTML = `
         ${label}
         <td class="score-cell" style="color:${scoreColor(r.score)}">${r.score}</td>
@@ -334,9 +421,27 @@
         <td>${fmt(r.clsFmt)}</td>
         <td>${fmt(r.siFmt)}</td>
         <td>${fmt(r.ttiFmt)}</td>
+        ${screenshotCell}
       `;
+
+      if (!isAvg && r.screenshot) {
+        tr.querySelector('.thumb').addEventListener('click', () => openLightbox(r.screenshot, `Run ${runNum}`));
+      }
+
       return tr;
     }
+
+    function openLightbox(src, label) {
+      document.getElementById('lightboxImg').src = src;
+      document.getElementById('lightboxLabel').textContent = label;
+      document.getElementById('lightbox').classList.add('open');
+    }
+
+    function closeLightbox() {
+      document.getElementById('lightbox').classList.remove('open');
+    }
+
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
 
     function showError(msg) {
       const el = document.getElementById('errorMsg');
@@ -448,6 +553,7 @@
       const url = document.getElementById('urlInput').value.trim();
       const device = document.querySelector('input[name="device"]:checked').value;
       const runs = parseInt(document.getElementById('runsSelect').value, 10);
+      const cookieSelector = document.getElementById('cookieSelector').value.trim();
 
       if (!url) { showError('Please enter a URL.'); return; }
 
@@ -464,14 +570,23 @@
       document.getElementById('exportRow').classList.remove('visible');
       document.getElementById('progressWrap').classList.add('visible');
       document.getElementById('progressBar').style.width = '0%';
-      document.getElementById('progressLabel').textContent = 'Starting...';
+      document.getElementById('progressLabel').textContent = cookieSelector ? 'Accepting cookie consent...' : 'Starting...';
       document.getElementById('progressCount').textContent = '';
       document.getElementById('runBtn').disabled = true;
+      document.getElementById('stopBtn').style.display = 'inline-flex';
+      document.getElementById('stopBtn').disabled = false;
 
       const metaEl = document.getElementById('resultsMeta');
       metaEl.innerHTML = `<strong>${url}</strong> &nbsp;·&nbsp; ${device === 'mobile' ? '📱 Mobile' : '🖥 Desktop'} &nbsp;·&nbsp; ${new Date().toLocaleString()}`;
 
-      const evtSource = new EventSource(`/run?url=${encodeURIComponent(url)}&device=${device}&runs=${runs}`);
+      const params = new URLSearchParams({ url, device, runs });
+      if (cookieSelector) params.set('cookieSelector', cookieSelector);
+      const evtSource = new EventSource(`/run?${params}`);
+
+      evtSource.addEventListener('setup', e => {
+        const { message } = JSON.parse(e.data);
+        document.getElementById('progressLabel').textContent = message;
+      });
 
       evtSource.addEventListener('progress', e => {
         const data = JSON.parse(e.data);
@@ -498,6 +613,24 @@
         document.getElementById('progressLabel').textContent = 'Done!';
         document.getElementById('exportRow').classList.add('visible');
         document.getElementById('runBtn').disabled = false;
+        document.getElementById('stopBtn').style.display = 'none';
+        evtSource.close();
+      });
+
+      evtSource.addEventListener('stopped', e => {
+        const { completed, avg } = JSON.parse(e.data);
+        if (avg) {
+          avgData = avg;
+          document.getElementById('resultsWrap').classList.add('visible');
+          document.getElementById('tableBody').appendChild(makeRow(null, avg, true));
+          document.getElementById('exportRow').classList.add('visible');
+        }
+        document.getElementById('progressBar').style.width = '100%';
+        document.getElementById('progressLabel').textContent =
+          completed > 0 ? `Stopped after ${completed} run${completed !== 1 ? 's' : ''}.` : 'Stopped.';
+        document.getElementById('progressCount').textContent = '';
+        document.getElementById('runBtn').disabled = false;
+        document.getElementById('stopBtn').style.display = 'none';
         evtSource.close();
       });
 
@@ -505,6 +638,7 @@
         try {
           const { message } = JSON.parse(e.data);
           showError(message);
+          document.getElementById('stopBtn').style.display = 'none';
         } catch {
           showError('An unexpected error occurred.');
         }
@@ -512,6 +646,12 @@
         document.getElementById('runBtn').disabled = false;
         evtSource.close();
       });
+    }
+
+    function stopRun() {
+      document.getElementById('stopBtn').disabled = true;
+      document.getElementById('progressLabel').textContent = 'Stopping...';
+      fetch('/stop').catch(() => {});
     }
 
     document.getElementById('urlInput').addEventListener('keydown', e => {

@@ -5,6 +5,7 @@ import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { launch } from 'chrome-launcher';
 import lighthouse from 'lighthouse';
+import CDP from 'chrome-remote-interface';
 
 const PORT = 3000;
 const DEFAULT_RUNS = 1;
@@ -12,6 +13,8 @@ const MAX_RUNS = 50;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 let isRunning = false;
+let shouldStop = false;
+let currentChrome = null;
 
 const DESKTOP_CONFIG = {
   formFactor: 'desktop',
@@ -34,12 +37,62 @@ function avg_val(results, fn) {
   return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
 }
 
-async function runLighthouse(url, chromePort, device) {
+// Click cookie consent button via CDP, then clear HTTP cache so Lighthouse starts cold.
+// Returns true if the button was found and clicked.
+async function acceptCookiesViaCDP(port, url, selector) {
+  const client = await CDP({ port });
+  try {
+    const { Page, Runtime, Network } = client;
+    await Page.enable();
+    await Network.enable();
+
+    const loadPromise = new Promise(resolve => Page.loadEventFired(resolve));
+    await Page.navigate({ url });
+    await Promise.race([loadPromise, new Promise(r => setTimeout(r, 15000))]);
+
+    // Wait for the cookie banner to render
+    await new Promise(r => setTimeout(r, 2500));
+
+    const { result } = await Runtime.evaluate({
+      expression: `(() => {
+        const el = document.querySelector(${JSON.stringify(selector)});
+        if (el) { el.click(); return true; }
+        return false;
+      })()`,
+    });
+
+    const clicked = result.value === true;
+
+    // Wait for any post-click actions (redirects, API calls, variant assignment)
+    await new Promise(r => setTimeout(r, 1500));
+
+    // Clear HTTP cache so the upcoming Lighthouse run starts cold
+    await Network.clearBrowserCache();
+
+    return clicked;
+  } finally {
+    await client.close();
+  }
+}
+
+// Clear only the HTTP cache (cookies/localStorage untouched) between runs
+async function clearBrowserCache(port) {
+  const client = await CDP({ port });
+  try {
+    await client.Network.enable();
+    await client.Network.clearBrowserCache();
+  } finally {
+    await client.close();
+  }
+}
+
+async function runLighthouse(url, chromePort, device, preserveCookies) {
   const settings = device === 'desktop' ? DESKTOP_CONFIG : {};
   const result = await lighthouse(url, {
     port: chromePort,
     onlyCategories: ['performance'],
     output: 'json',
+    disableStorageReset: preserveCookies, // keep cookies when consent was pre-accepted
     ...settings,
   });
   const lhr = result.lhr;
@@ -61,6 +114,7 @@ async function runLighthouse(url, chromePort, device) {
     clsFmt: formatCls(raw.cls),
     siFmt: formatMs(raw.si),
     ttiFmt: formatMs(raw.tti),
+    screenshot: lhr.audits['final-screenshot']?.details?.data ?? null,
   };
 }
 
@@ -76,6 +130,18 @@ const server = http.createServer(async (req, res) => {
     const html = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf-8');
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(html);
+    return;
+  }
+
+  // Stop endpoint
+  if (reqUrl.pathname === '/stop') {
+    shouldStop = true;
+    if (currentChrome) {
+      try { await currentChrome.kill(); } catch {}
+      currentChrome = null;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: true }));
     return;
   }
 
@@ -97,6 +163,7 @@ const server = http.createServer(async (req, res) => {
     const targetUrl = reqUrl.searchParams.get('url');
     const device = (reqUrl.searchParams.get('device') || 'mobile').toLowerCase();
     const runs = Math.min(MAX_RUNS, Math.max(1, parseInt(reqUrl.searchParams.get('runs'), 10) || DEFAULT_RUNS));
+    const cookieSelector = reqUrl.searchParams.get('cookieSelector')?.trim() || '';
 
     if (!targetUrl) {
       sendEvent(res, 'error', { message: 'URL is required.' });
@@ -119,35 +186,65 @@ const server = http.createServer(async (req, res) => {
     }
 
     isRunning = true;
+    shouldStop = false;
     const results = [];
     let chrome;
 
+    const buildAvg = (arr) => ({
+      score: Math.round(avg_val(arr, r => r.score)),
+      fcpFmt: formatMs(avg_val(arr, r => r.fcp)),
+      lcpFmt: formatMs(avg_val(arr, r => r.lcp)),
+      tbtFmt: formatMs(avg_val(arr, r => r.tbt)),
+      clsFmt: formatCls(avg_val(arr, r => r.cls)),
+      siFmt: formatMs(avg_val(arr, r => r.si)),
+      ttiFmt: formatMs(avg_val(arr, r => r.tti)),
+    });
+
     try {
       chrome = await launch({ chromeFlags: ['--headless', '--disable-gpu'] });
+      currentChrome = chrome;
 
-      for (let i = 1; i <= runs; i++) {
-        sendEvent(res, 'progress', { run: i, total: runs, status: 'running' });
-        const r = await runLighthouse(targetUrl, chrome.port, device);
-        results.push(r);
-        sendEvent(res, 'progress', { run: i, total: runs, status: 'done', result: r });
+      if (cookieSelector) {
+        sendEvent(res, 'setup', { message: 'Navigating to page and accepting cookie consent...' });
+        const clicked = await acceptCookiesViaCDP(chrome.port, targetUrl, cookieSelector);
+        sendEvent(res, 'setup', {
+          message: clicked
+            ? 'Cookie consent accepted. Starting audits...'
+            : `Cookie button not found for selector "${cookieSelector}". Proceeding anyway.`,
+          clicked,
+        });
       }
 
-      const avg = {
-        score: Math.round(avg_val(results, r => r.score)),
-        fcpFmt: formatMs(avg_val(results, r => r.fcp)),
-        lcpFmt: formatMs(avg_val(results, r => r.lcp)),
-        tbtFmt: formatMs(avg_val(results, r => r.tbt)),
-        clsFmt: formatCls(avg_val(results, r => r.cls)),
-        siFmt: formatMs(avg_val(results, r => r.si)),
-        ttiFmt: formatMs(avg_val(results, r => r.tti)),
-      };
+      for (let i = 1; i <= runs; i++) {
+        if (shouldStop) break;
 
-      sendEvent(res, 'done', { results, avg });
+        if (cookieSelector && i > 1) {
+          await clearBrowserCache(chrome.port);
+        }
+
+        sendEvent(res, 'progress', { run: i, total: runs, status: 'running' });
+        try {
+          const r = await runLighthouse(targetUrl, chrome.port, device, !!cookieSelector);
+          results.push(r);
+          sendEvent(res, 'progress', { run: i, total: runs, status: 'done', result: r });
+        } catch (err) {
+          if (shouldStop) break; // Chrome was killed intentionally
+          throw err;
+        }
+      }
+
+      if (shouldStop) {
+        sendEvent(res, 'stopped', { completed: results.length, avg: results.length ? buildAvg(results) : null });
+      } else {
+        sendEvent(res, 'done', { results, avg: buildAvg(results) });
+      }
     } catch (err) {
-      sendEvent(res, 'error', { message: err.message });
+      if (!shouldStop) sendEvent(res, 'error', { message: err.message });
     } finally {
-      if (chrome) await chrome.kill();
+      currentChrome = null;
+      if (chrome) try { await chrome.kill(); } catch {}
       isRunning = false;
+      shouldStop = false;
       res.end();
     }
     return;
