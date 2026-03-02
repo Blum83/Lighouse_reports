@@ -1,6 +1,6 @@
 # Lighthouse Performance Runner
 
-A local tool that runs 10 Lighthouse performance audits for a given URL and shows per-run results with an Average row. Supports both a web UI and a CLI.
+A local tool that runs 1 / 3 / 5 / 10 / 15 / 20 / 50 times Lighthouse performance audits for a given URL and shows per-run results with an Average row. Supports both a web UI and a CLI.
 
 ## Requirements
 
