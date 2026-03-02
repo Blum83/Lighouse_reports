@@ -43,7 +43,7 @@ The CLI saves an HTML report to the `reports/` folder and opens it in the browse
 ## How it works
 
 1. Launches Chrome in headless mode
-2. Runs Lighthouse 10 times for the given URL
+2. Runs Lighthouse 1 / 3 / 5 / 10 / 15 / 20 / 50 times for the given URL
 3. Streams progress in real time (UI) or prints to console (CLI)
 4. Shows a table with per-run results and an Average row at the bottom
 
