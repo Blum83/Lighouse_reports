@@ -1,6 +1,6 @@
 # Lighthouse Performance Runner
 
-A local tool that runs 10 Lighthouse performance audits for a given URL and generates an HTML report with per-run results and an Average row.
+A local tool that runs 10 Lighthouse performance audits for a given URL and shows per-run results with an Average row. Supports both a web UI and a CLI.
 
 ## Requirements
 
@@ -15,11 +15,20 @@ npm install
 
 ## Usage
 
+### Web UI (recommended)
+
+```bash
+node server.js
+```
+
+Opens `http://localhost:3000` automatically. Enter a URL, pick Mobile or Desktop, click **Run**.
+Results appear row by row as each audit completes. Once done, export the table in HTML, CSV, or XLSX.
+
+### CLI
+
 ```bash
 node run.js <url> [mobile|desktop]
 ```
-
-### Examples
 
 ```bash
 # Mobile (default)
@@ -27,51 +36,30 @@ node run.js https://example.com
 
 # Desktop
 node run.js https://example.com desktop
-
-# Mobile explicit
-node run.js https://example.com mobile
 ```
+
+The CLI saves an HTML report to the `reports/` folder and opens it in the browser automatically.
 
 ## How it works
 
 1. Launches Chrome in headless mode
-2. Runs Lighthouse 10 times
-3. Prints progress for each run in the console
-4. Saves an HTML report to the `reports/` folder
-5. Automatically opens the report in the browser
-
-## Console output
-
-```
-Lighthouse Performance Runner
-URL   : https://example.com
-Device: desktop
-Runs  : 10
-
-[1/10] Score:  91 | FCP:  0.80s | LCP:  1.20s | TBT:   40ms | CLS: 0.002
-[2/10] Score:  89 | FCP:  0.85s | LCP:  1.30s | TBT:   55ms | CLS: 0.004
-...
-
-─────────────────────────────────
-Average Score : 90
-Average FCP   : 0.82s
-Average LCP   : 1.25s
-─────────────────────────────────
-
-Report saved: reports/example.com_desktop_2026-02-27_14-30.html
-```
-
-## HTML report
-
-A table with metrics for each run plus an Average row at the bottom:
-
-| Run | Score | FCP | LCP | TBT | CLS | Speed Index | TTI |
-|-----|-------|-----|-----|-----|-----|-------------|-----|
-| 1 | 91 | ... | ... | ... | ... | ... | ... |
-| ... | ... | ... | ... | ... | ... | ... | ... |
-| **Avg** | **90** | ... | ... | ... | ... | ... | ... |
+2. Runs Lighthouse 10 times for the given URL
+3. Streams progress in real time (UI) or prints to console (CLI)
+4. Shows a table with per-run results and an Average row at the bottom
 
 Score color scale: 🟢 90–100 · 🟠 50–89 · 🔴 0–49
+
+## Export (Web UI)
+
+After all 10 runs complete, three export buttons appear below the table:
+
+| Format | Description |
+|--------|-------------|
+| HTML | Standalone HTML file, opens in any browser |
+| CSV | Comma-separated values, compatible with Excel and Google Sheets |
+| XLSX | Native Excel file with column widths pre-set |
+
+Files are named automatically: `example.com_desktop_2026-03-02_14-30.xlsx`
 
 ## Metrics
 
@@ -89,9 +77,11 @@ Score color scale: 🟢 90–100 · 🟠 50–89 · 🔴 0–49
 
 ```
 Lighouse_reports/
-├── run.js          — main script
+├── server.js       — web UI server (http://localhost:3000)
+├── run.js          — CLI script
+├── public/
+│   └── index.html  — web interface
 ├── package.json    — dependencies
 ├── README.md
-└── reports/        — HTML reports (auto-created, git-ignored)
-    └── example.com_mobile_2026-02-27_14-30.html
+└── reports/        — CLI HTML reports (auto-created, git-ignored)
 ```
