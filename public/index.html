@@ -116,10 +116,14 @@
       cursor: pointer;
       transition: background .15s, color .15s;
       white-space: nowrap;
-      display: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      visibility: hidden;
     }
     .btn-stop:hover { background: #d93025; color: #fff; }
     .btn-stop:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-stop.hidden { visibility: hidden; }
 
     /* Progress */
     .progress-wrap { display: none; }
@@ -573,7 +577,7 @@
       document.getElementById('progressLabel').textContent = cookieSelector ? 'Accepting cookie consent...' : 'Starting...';
       document.getElementById('progressCount').textContent = '';
       document.getElementById('runBtn').disabled = true;
-      document.getElementById('stopBtn').style.display = 'inline-flex';
+      document.getElementById('stopBtn').style.visibility = 'visible';
       document.getElementById('stopBtn').disabled = false;
 
       const metaEl = document.getElementById('resultsMeta');
@@ -613,7 +617,7 @@
         document.getElementById('progressLabel').textContent = 'Done!';
         document.getElementById('exportRow').classList.add('visible');
         document.getElementById('runBtn').disabled = false;
-        document.getElementById('stopBtn').style.display = 'none';
+        document.getElementById('stopBtn').style.visibility = 'hidden';
         evtSource.close();
       });
 
@@ -630,7 +634,7 @@
           completed > 0 ? `Stopped after ${completed} run${completed !== 1 ? 's' : ''}.` : 'Stopped.';
         document.getElementById('progressCount').textContent = '';
         document.getElementById('runBtn').disabled = false;
-        document.getElementById('stopBtn').style.display = 'none';
+        document.getElementById('stopBtn').style.visibility = 'hidden';
         evtSource.close();
       });
 
@@ -638,7 +642,7 @@
         try {
           const { message } = JSON.parse(e.data);
           showError(message);
-          document.getElementById('stopBtn').style.display = 'none';
+          document.getElementById('stopBtn').style.visibility = 'hidden';
         } catch {
           showError('An unexpected error occurred.');
         }
