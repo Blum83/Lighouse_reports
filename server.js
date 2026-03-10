@@ -125,6 +125,14 @@ function sendEvent(res, event, data) {
 const server = http.createServer(async (req, res) => {
   const reqUrl = new URL(req.url, `http://localhost:${PORT}`);
 
+  // Serve favicon
+  if (reqUrl.pathname === '/favicon.svg') {
+    const svg = fs.readFileSync(path.join(__dirname, 'public', 'favicon.svg'), 'utf-8');
+    res.writeHead(200, { 'Content-Type': 'image/svg+xml' });
+    res.end(svg);
+    return;
+  }
+
   // Serve UI
   if (reqUrl.pathname === '/' || reqUrl.pathname === '/index.html') {
     const html = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf-8');

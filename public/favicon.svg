@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Blue background -->
+  <rect width="32" height="32" rx="7" fill="#1a73e8"/>
+  <!-- Light rays -->
+  <path d="M16 9L8.5 3.5M16 9L23.5 3.5M16 9L4 9.5M16 9L28 9.5"
+        stroke="#ffd740" stroke-width="1.8" stroke-linecap="round" opacity="0.9"/>
+  <!-- Lantern room -->
+  <rect x="11" y="9.5" width="10" height="5" rx="1.2" fill="white"/>
+  <!-- Lens -->
+  <circle cx="16" cy="12" r="2.2" fill="#ffd740"/>
+  <!-- Tower body (tapered) -->
+  <path d="M13.8 14.5 H18.2 L17 27 H15 Z" fill="white"/>
+  <!-- Base platform -->
+  <rect x="10" y="27" width="12" height="2.5" rx="1" fill="white"/>
+</svg>
