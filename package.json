@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "start": "node run.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "chrome-launcher": "^1.1.2",

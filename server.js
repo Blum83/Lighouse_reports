@@ -7,7 +7,7 @@ import { launch } from 'chrome-launcher';
 import lighthouse from 'lighthouse';
 import CDP from 'chrome-remote-interface';
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const DEFAULT_RUNS = 1;
 const MAX_RUNS = 50;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -201,7 +201,10 @@ const server = http.createServer(async (req, res) => {
     });
 
     try {
-      chrome = await launch({ chromeFlags: ['--headless', '--disable-gpu'] });
+      chrome = await launch({
+        chromePath: process.env.CHROME_PATH,
+        chromeFlags: ['--headless', '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+      });
       currentChrome = chrome;
 
       if (cookieSelector) {
