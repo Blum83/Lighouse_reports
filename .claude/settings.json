@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm ls:*)",
+      "Bash(npx electron:*)",
+      "Bash(npx --yes sharp-cli -i \"f:/work/Lighouse_reports/public/favicon.svg\" -o \"f:/work/Lighouse_reports/build/icon.png\" resize 512 512)",
+      "Bash(npx sharp-cli:*)",
+      "Bash(node -e \"const p = require\\('./node_modules/lighthouse-logger/package.json'\\); console.log\\(p.version\\)\")",
+      "Bash(npm install:*)"
+    ]
+  }
+}

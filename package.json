@@ -1,13 +1,56 @@
 {
   "name": "lighthouse-runner",
   "version": "1.0.0",
+  "description": "Desktop app for running Lighthouse performance tests with averaged results",
+  "author": "Blumination",
+  "license": "MIT",
   "type": "module",
+  "main": "main.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "electron .",
+    "cli": "node run.js",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac"
+  },
+  "build": {
+    "appId": "com.lighthouse-runner.app",
+    "productName": "Lighthouse Runner",
+    "icon": "build/icon.png",
+    "asar": false,
+    "files": [
+      "main.js",
+      "preload.cjs",
+      "index.html",
+      "renderer.js",
+      "styles.css",
+      "node_modules/**"
+    ],
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.developer-tools"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false
+    }
   },
   "dependencies": {
     "chrome-launcher": "^1.1.2",
     "chrome-remote-interface": "^0.34.0",
-    "lighthouse": "^12.0.0"
+    "lighthouse": "^12.0.0",
+    "lighthouse-logger": "^2.0.2",
+    "ws": "^8.0.0"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
   }
 }

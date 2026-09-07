@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Lighthouse Runner</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="app-header">
+  <h1>Lighthouse Runner</h1>
+  <p class="subtitle">Run performance audits and get averaged results</p>
+</div>
+
+<div class="card">
+  <div class="controls-row">
+    <div class="field url-field">
+      <label for="url">URL</label>
+      <input type="url" id="url" placeholder="https://example.com" spellcheck="false" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Device</label>
+      <div class="device-toggle">
+        <button class="dev-btn active" id="btnMobile">&#128241; MOBILE</button>
+        <button class="dev-btn" id="btnDesktop">&#128421; DESKTOP</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="runs">Runs</label>
+      <select id="runs">
+        <option value="3">3</option>
+        <option value="5">5</option>
+        <option value="10" selected>10</option>
+        <option value="15">15</option>
+        <option value="20">20</option>
+      </select>
+    </div>
+    <button id="btn">Run</button>
+  </div>
+
+  <div class="cookie-row">
+    <div class="field cookie-field">
+      <label for="cookieSelector">Cookie Consent Selector <span class="optional">(optional)</span></label>
+      <input type="text" id="cookieSelector" placeholder="#accept-cookies-btn" spellcheck="false" autocomplete="off">
+      <p class="hint">CSS selector of the &ldquo;Accept cookies&rdquo; button. The page will be pre-loaded and the button clicked before audits start, so your A/B experiment activates correctly.</p>
+    </div>
+  </div>
+</div>
+
+<div class="card progress-card" id="prog" hidden>
+  <div class="progress-header">
+    <span id="progressStatus">Starting&hellip;</span>
+    <span id="progressCount"></span>
+  </div>
+  <div class="bar"><div id="fill"></div></div>
+</div>
+
+<div class="card results-card" id="tableWrap" hidden>
+  <div class="report-meta">
+    <a id="reportUrl" href="#" class="report-url" target="_blank"></a>
+    <span id="reportMetaText" class="report-meta-text"></span>
+  </div>
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Run</th>
+          <th>Score</th>
+          <th>FCP</th>
+          <th>LCP</th>
+          <th>TBT</th>
+          <th>CLS</th>
+          <th>Speed Index</th>
+          <th>TTI</th>
+          <th>Screenshot</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+      <tfoot id="tfoot"></tfoot>
+    </table>
+  </div>
+  <div class="table-footer">
+    <button id="csvBtn" hidden>&#8595; Download CSV</button>
+  </div>
+</div>
+
+<p id="note" hidden>Powered by Lighthouse &mdash; results identical to Lighthouse CLI.</p>
+
+<div id="modal" hidden>
+  <div id="modalBackdrop"></div>
+  <div id="modalContent">
+    <img id="modalImg" src="" alt="Screenshot">
+    <button id="modalClose">&times;</button>
+  </div>
+</div>
+
+<script src="renderer.js"></script>
+</body>
+</html>
