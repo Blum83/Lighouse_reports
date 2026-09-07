@@ -1,6 +1,6 @@
-# Lighthouse Performance Runner
+# Lighthouse Runner
 
-A local tool that runs 1 / 3 / 5 / 10 / 15 / 20 / 50 times Lighthouse performance audits for a given URL and shows per-run results with an Average row. Supports both a web UI and a CLI.
+A desktop app (Electron) for running Lighthouse performance audits against a URL, multiple times in a row, with averaged results. Built for personal use.
 
 ## Requirements
 
@@ -15,51 +15,33 @@ npm install
 
 ## Usage
 
-### Web UI (recommended)
+### Desktop app (recommended)
 
 ```bash
-node server.js
+npm start
 ```
 
-Opens `http://localhost:3000` automatically. Enter a URL, pick Mobile or Desktop, click **Run**.
-Results appear row by row as each audit completes. Once done, export the table in HTML, CSV, or XLSX.
+Enter a URL, choose Mobile or Desktop, pick a run count (3/5/10/15/20), optionally set a cookie-consent CSS selector, and click **Run**.
 
-### CLI
+Results stream in row by row as each run completes, with a screenshot thumbnail per row (click to view full-size) and an averages row at the bottom. Export results to CSV.
+
+### CLI (legacy)
 
 ```bash
 node run.js <url> [mobile|desktop]
 ```
 
-```bash
-# Mobile (default)
-node run.js https://example.com
-
-# Desktop
-node run.js https://example.com desktop
-```
-
-The CLI saves an HTML report to the `reports/` folder and opens it in the browser automatically.
+Saves an HTML report to `reports/` and opens it in the browser. `server.js` + `public/` provide an older browser-based UI for the same flow.
 
 ## How it works
 
-1. Launches Chrome in headless mode
-2. Runs Lighthouse 1 / 3 / 5 / 10 / 15 / 20 / 50 times for the given URL
-3. Streams progress in real time (UI) or prints to console (CLI)
-4. Shows a table with per-run results and an Average row at the bottom
+1. Launches headless Chrome
+2. If a cookie-consent selector is set, primes consent via CDP before each run (see [main.js](main.js))
+3. Runs Lighthouse the chosen number of times for the given URL
+4. Streams progress in the UI ("Running X / Y…" → "Done!")
+5. Shows a table with per-run results and an averages row
 
 Score color scale: 🟢 90–100 · 🟠 50–89 · 🔴 0–49
-
-## Export (Web UI)
-
-After all 10 runs complete, three export buttons appear below the table:
-
-| Format | Description |
-|--------|-------------|
-| HTML | Standalone HTML file, opens in any browser |
-| CSV | Comma-separated values, compatible with Excel and Google Sheets |
-| XLSX | Native Excel file with column widths pre-set |
-
-Files are named automatically: `example.com_desktop_2026-03-02_14-30.xlsx`
 
 ## Metrics
 
@@ -72,16 +54,26 @@ Files are named automatically: `example.com_desktop_2026-03-02_14-30.xlsx`
 | CLS | Cumulative Layout Shift |
 | Speed Index | Speed Index |
 | TTI | Time to Interactive |
+| Screenshot | Final screenshot from the run |
+
+## Build
+
+```bash
+npm run build:win   # Windows installer (nsis)
+npm run build:mac   # macOS dmg — must run on macOS
+```
 
 ## Project structure
 
 ```
 Lighouse_reports/
-├── server.js       — web UI server (http://localhost:3000)
-├── run.js          — CLI script
-├── public/
-│   └── index.html  — web interface
-├── package.json    — dependencies
-├── README.md
-└── reports/        — CLI HTML reports (auto-created, git-ignored)
+├── main.js          — Electron main process (Lighthouse + CDP cookie consent)
+├── renderer.js       — UI logic
+├── preload.cjs        — IPC bridge (contextBridge)
+├── index.html         — app UI
+├── styles.css
+├── run-cv235549.js    — one-off runner (see file header for context)
+├── run.js / server.js / public/ — legacy CLI + browser UI
+├── package.json       — dependencies + electron-builder config
+└── reports/            — CLI HTML reports (auto-created, git-ignored)
 ```
